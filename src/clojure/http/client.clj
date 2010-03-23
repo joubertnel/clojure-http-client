@@ -10,6 +10,7 @@
 
 (def default-headers {"User-Agent" (str "Clojure/" *clojure-version*
                                         " (+http://clojure.org)"),
+                      "Accept" "*/*",
                       "Connection" "close"})
 
 (def *connect-timeout* 0)
@@ -136,6 +137,7 @@ by a server."
 
     (let [headers (parse-headers connection)]
       {:body-seq (sequencer (get-stream connection))
+       :connection connection
        :code (.getResponseCode connection)
        :msg (.getResponseMessage connection)
        :method method
