@@ -50,15 +50,15 @@ representation of argument, either a string or map."
 
   (let [out (.getOutputStream connection)]
     (cond
-      (string? body) (duck/spit out body)
-      (map? body) (duck/spit out (url-encode body))
-      (instance? InputStream body)
-      (let [bytes (make-array Byte/TYPE *buffer-size*)]
-        (loop [#^InputStream stream body
-               bytes-read (.read stream bytes)]
-          (when (pos? bytes-read)
-            (.write out bytes 0 bytes-read)
-            (recur stream (.read stream bytes))))))
+     (string? body) (duck/spit out body)
+     (map? body) (duck/spit out (url-encode body))
+     (instance? InputStream body) (let [bytes (make-array Byte/TYPE *buffer-size*)]
+				    (loop [#^InputStream stream body
+					   bytes-read (.read stream bytes)]
+				      (when (pos? bytes-read)
+					(.write out bytes 0 bytes-read)
+					(recur stream (.read stream bytes)))))
+     'body-is-byte-array (.write out body))
     (.close out)))
 
 (defn #^URL url
