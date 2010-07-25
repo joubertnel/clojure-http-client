@@ -72,14 +72,13 @@ url as its sole argument."
     u
     (URL. u)))
 
-(defn- body-seq
-  "Returns a lazy-seq of lines from either the input stream
-or the error stream of connection, whichever is appropriate."
-  [#^HttpURLConnection connection]
-  (duck/read-lines (or (if (>= (.getResponseCode connection) 400)
-                         (.getErrorStream connection)
-                         (.getInputStream connection))
-                       (StringReader. ""))))
+(defn- get-stream
+  "Returns the input stream or the error stream of connection, whichever is appropriate."
+    [#^HttpURLConnection connection]
+    (or (if (>= (.getResponseCode connection) 400)
+          (.getErrorStream connection)
+          (.getInputStream connection))
+        (StringReader. "")))
 
 (defn- parse-headers
   "Returns a map of the response headers from connection."
@@ -107,18 +106,9 @@ by a server."
                              #^String (as-str (val cookie))))
                       cookie-map)))
 
-(defn add-query-params
-  "Takes a URL and a map of query params and returns a URL with query params attached."
-  [url query-params]
-  (if (seq query-params)
-    (apply str url "?"
-           (interpose "&" (for [[k v] query-params]
-                            (str (url-encode k) "=" (url-encode v)))))
-    url))
-
-(defn request
+(defn request*
   "Perform an HTTP request on URL u."
-  [u & [method headers cookies body]]
+  [u sequencer & [method headers cookies body]]
   ;; This function *should* throw an exception on non-HTTP URLs.
   ;; This will happen if the cast fails.
   (let [u (url u)
@@ -151,7 +141,7 @@ by a server."
       (.connect connection))
 
     (let [headers (parse-headers connection)]
-      {:body-seq (body-seq connection)
+      {:body-seq (sequencer (get-stream connection))
        :connection connection
        :code (.getResponseCode connection)
        :msg (.getResponseMessage connection)
@@ -161,3 +151,32 @@ by a server."
        :get-header #(.getHeaderField connection #^String (as-str %))
        :cookies (apply merge (map parse-cookies (headers :set-cookie)))
        :url (str (.getURL connection))})))
+
+(defn request
+  "Perform an HTTP request on URL u. Response body is a seq of strings"
+  [u & [method headers cookies body]]
+  ;; This function *should* throw an exception on non-HTTP URLs.
+  ;; This will happen if the cast fails.
+  (request* u duck/read-lines method headers cookies body))
+
+(defn read-blocks
+  [f]
+  (let [read-block (fn this [#^InputStream rdr]
+                (lazy-seq
+                  
+                  (let [buff (byte-array 0)
+                        size (.read rdr)]
+                    (if (> -1 size) 
+                      (cons buff (this rdr))
+                      (.close rdr)))))]
+    (read-block f)))
+
+(defn binary-request
+  "Perform an HTTP request on URL u. Response body is a seq of byte arrays"
+  [u & [method headers cookies body]]
+  (request* u read-blocks method headers cookies body))
+
+(defn stream-request
+  "Perform an HTTP request on URL u. Response body is an InputStream"
+  [u & [method headers cookies body]]
+  (request* u identity method headers cookies body))
