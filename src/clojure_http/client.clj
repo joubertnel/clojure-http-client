@@ -159,22 +159,10 @@ by a server."
   ;; This will happen if the cast fails.
   (request* u duck/read-lines method headers cookies body))
 
-(defn read-blocks
-  [f]
-  (let [read-block (fn this [#^InputStream rdr]
-                (lazy-seq
-                  
-                  (let [buff (byte-array 0)
-                        size (.read rdr)]
-                    (if (> -1 size) 
-                      (cons buff (this rdr))
-                      (.close rdr)))))]
-    (read-block f)))
-
 (defn binary-request
-  "Perform an HTTP request on URL u. Response body is a seq of byte arrays"
+  "Perform an HTTP request on URL u. Response body is byte array"
   [u & [method headers cookies body]]
-  (request* u read-blocks method headers cookies body))
+  (request* u duck/to-byte-array method headers cookies body))
 
 (defn stream-request
   "Perform an HTTP request on URL u. Response body is an InputStream"
