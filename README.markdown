@@ -1,9 +1,6 @@
 # Clojure HTTP Client
 
-by Dan Larkin and Phil Hagelberg
-
-Note: In the 1.0.0 release the namespace changed from clojure.http to
-clojure-http; please update your require clauses accordingly.
+NOTE: this is now deprecated. Use [clj-http](http://github.com/clj-sys/clj-http) instead.
 
 ## Example
 
